@@ -1,0 +1,26 @@
+{
+  "data": {
+    "major": 0,
+    "minor": 9,
+    "release": 7
+  },
+  "branches": [
+    {
+      "branch": "master",
+      "version": "{major}.{minor}.{release}"
+    },
+    {
+      "branch": ".*",
+      "version": "{branch}.{commit-counter}"
+    }
+  ],
+  "data-file": [
+    "branch",
+    "commit-counter",
+    "major",
+    "minor",
+    "version",
+    "commit-hash",
+    "commit-hash-short"
+  ]
+}
