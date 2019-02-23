@@ -18,6 +18,9 @@ You can get RPMs, DEBs, and OSX packages from [theblobshop.com](https://www.theb
 
 Examples
 --------
+
+**Splitting document sections into files**
+
 Suppose I have a document, `/tmp/f.txt`:
 ```
 1
@@ -64,6 +67,68 @@ And the contents of each file:
 7
 8
 ```
+
+**Splitting document sections and counting lines**
+
+Using the same file (`/tmp/f.txt`) we can count the lines in each
+section.
+
+```
+> cat /tmp/f.txt | l2j --split-before '---' | jpar -i '{{.}}' -p 1 wc -l | jq
+{
+  "cmd": [
+    "wc",
+    "-l"
+  ],
+  "prog": "/usr/bin/wc",
+  "returncode": 0,
+  "stdout": "       1\n",
+  "stderr": "",
+  "outcome": "SUCCESS"
+}
+{
+  "cmd": [
+    "wc",
+    "-l"
+  ],
+  "prog": "/usr/bin/wc",
+  "returncode": 0,
+  "stdout": "       3\n",
+  "stderr": "",
+  "outcome": "SUCCESS"
+}
+{
+  "cmd": [
+    "wc",
+    "-l"
+  ],
+  "prog": "/usr/bin/wc",
+  "returncode": 0,
+  "stdout": "       4\n",
+  "stderr": "",
+  "outcome": "SUCCESS"
+}
+{
+  "cmd": [
+    "wc",
+    "-l"
+  ],
+  "prog": "/usr/bin/wc",
+  "returncode": 0,
+  "stdout": "       3\n",
+  "stderr": "",
+  "outcome": "SUCCESS"
+}
+```
+
+The `jpar` command runs a program once for each JSON object in the input. It
+The `-i` option supplies a pattern for the programs standard input. The
+process's standard in (generated), standard out, standard error, and return
+code are recorded in the resulting json objects.
+
+You can then use the tools of your choice (such as `jq` in the example above
+to manipulate the output.) 
+
 
 Template System
 ---------------
