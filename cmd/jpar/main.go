@@ -45,6 +45,7 @@ func NewApp() *App {
 	return &App{
 		Parallelism: DEFAULT_PARALLELISM,
 		Env:         map[string]string{},
+		Stdin:	     "{{stdin}}",
 	}
 }
 
@@ -293,11 +294,8 @@ func buildJobRun(params *Params, data interface{}) *JobRun {
 	if params.Dir != nil {
 		r.Dir = params.Dir.Render(false, data)
 	}
-	stdin, err := CreateStdin(params.Stdin, r.Expansions)
-	if err != nil {
-		r.Errors = append(r.Errors, fmt.Sprintf("stdin could not be processed: %s", err))
-	}
-	r.Stdin = stdin
+
+	r.Stdin = params.Stdin.Render(false, data)
 
 	if len(r.Errors) != 0 {
 		r.Outcome = OUTCOME_FAILURE
@@ -397,22 +395,7 @@ func runJob(r *JobRun) *JobRun {
 }
 
 func CreateStdin(stdinTmpl *mustache.Template, expansions interface{}) (string, error) {
-	if stdinTmpl != nil {
-		return stdinTmpl.Render(false, expansions), nil
-	}
-	e, ok := expansions.(*map[string]interface{})
-	if !ok {
-		return "", nil
-	}
-	stdin, ok := (*e)["stdin"]
-	if !ok {
-		return "", nil
-	}
-	s, ok := stdin.(string)
-	if !ok {
-		return "", fmt.Errorf("attribute stdin is not a string")
-	}
-	return s, nil
+	return stdinTmpl.Render(false, expansions), nil
 }
 
 func ReadJsonStream(stream *os.File) chan JsonRead {
