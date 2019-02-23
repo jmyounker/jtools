@@ -6,14 +6,13 @@ PKG_VERS := github.com/jmyounker/vers
 
 PKG_NAME := jtools
 
-export GOFMT=gofmt -s
+export GOFMT = gofmt -s
+
+export COMMANDS := $(shell ls $(CURDIR)/cmd)
 
 clean:
 	rm -rf target
-	$(MAKE) clean -C cmd/jc
-	$(MAKE) clean -C cmd/jjoin
-	$(MAKE) clean -C cmd/jpar
-	$(MAKE) clean -C cmd/jx
+	$(foreach cmd,$(COMMANDS),$(MAKE) clean -C cmd/$(cmd);)
 
 update:
 	go get $(PKG_VERS)
@@ -26,16 +25,10 @@ set-version: build-vers
 	@echo version $(VERSION)
 
 build: set-version
-	$(MAKE) build -C cmd/jc
-	$(MAKE) build -C cmd/jjoin
-	$(MAKE) build -C cmd/jpar
-	$(MAKE) build -C cmd/jx
+	$(foreach cmd,$(COMMANDS),$(MAKE) build -C cmd/$(cmd);)
 
 test: build
-	$(MAKE) test -C cmd/jc
-	$(MAKE) test -C cmd/jjoin
-	$(MAKE) test -C cmd/jpar
-	$(MAKE) test -C cmd/jx
+	$(foreach cmd,$(COMMANDS),$(MAKE) test -C cmd/$(cmd);)
 
 set-prefix:
 ifndef PREFIX
@@ -61,36 +54,38 @@ else
 endif
 
 install: build test set-prefix set-user set-group
-	$(MAKE) -C cmd/jc install
-	$(MAKE) -C cmd/jpar install
+	$(foreach cmd,$(COMMANDS),$(MAKE) install -C cmd/$(cmd);)
 
 format:
-	$(MAKE) jc -C cmd/jc
+	$(foreach cmd,$(COMMANDS),$(MAKE) format -C cmd/$(cmd);)
 
 package-base: test
 	mkdir target
 	mkdir target/model
 	mkdir target/package
+	$(eval export MODEL_BASE=$(CURDIR)/target/model)
 
-package-osx: set-version package-base
-	mkdir target/model/osx
-	mkdir target/model/osx/usr
-	mkdir target/model/osx/usr/local
-	mkdir target/model/osx/usr/local/bin
-	install -m 755 $(CMD) target/model/osx/usr/local/bin/$(CMD)
+package-osx: set-version set-user set-group package-base
+	mkdir $(MODEL_BASE)/osx
+	mkdir $(MODEL_BASE)/osx/usr
+	mkdir $(MODEL_BASE)/osx/usr/local
+	mkdir $(MODEL_BASE)/osx/usr/local/bin
+	$(eval export PREFIX=$(MODEL_BASE)/osx/usr/local)
+	$(foreach cmd,$(COMMANDS),$(MAKE) install -C cmd/$(cmd);)
 	fpm -s dir -t osxpkg -n $(PKG_NAME) -v $(VERSION) -p target/package -C target/model/osx .
 
-package-rpm: set-version package-base
-	mkdir target/model/linux-x86-rpm
-	mkdir target/model/linux-x86-rpm/usr
-	mkdir target/model/linux-x86-rpm/usr/bin
-	install -m 755 $(CMD) target/model/linux-x86-rpm/usr/bin/$(CMD)
+package-rpm: set-version set-user set-group package-base
+	mkdir $(MODEL_BASE)/linux-x86-rpm
+	mkdir $(MODEL_BASE)/linux-x86-rpm/usr
+	mkdir $(MODEL_BASE)/linux-x86-rpm/usr/bin
+	$(eval export PREFIX=$(MODEL_BASE)/linux-x86-rpm/usr)
+	$(foreach cmd,$(COMMANDS),$(MAKE) install -C cmd/$(cmd);)
 	fpm -s dir -t rpm -n $(PKG_NAME) -v $(VERSION) -p target/package -C target/model/linux-x86-rpm .
 
-package-deb: set-version package-base
-	mkdir target/model/linux-x86-deb
-	mkdir target/model/linux-x86-deb/usr
-	mkdir target/model/linux-x86-deb/usr/bin
-	install -m 755 $(CMD) target/model/linux-x86-deb/usr/bin/$(CMD)
+package-deb: set-version set-user set-group package-base
+	mkdir $(MODEL_BASE)/linux-x86-deb
+	mkdir $(MODEL_BASE)/linux-x86-deb/usr
+	mkdir $(MODEL_BASE)/linux-x86-deb/usr/bin
+	$(eval export PREFIX=$(MODEL_BASE)/linux-x86-deb/bin)
+	$(foreach cmd,$(COMMANDS),$(MAKE) install -C cmd/$(cmd);)
 	fpm -s dir -t deb -n $(PKG_NAME) -v $(VERSION) -p target/package -C target/model/linux-x86-deb .
-

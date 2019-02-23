@@ -1,14 +1,14 @@
 package main
 
 import (
-	"testing"
-	"os"
-	"io/ioutil"
 	"bytes"
-	"log"
-	"github.com/urfave/cli"
 	"encoding/json"
 	"fmt"
+	"github.com/urfave/cli"
+	"io/ioutil"
+	"log"
+	"os"
+	"testing"
 )
 
 func failWhenErr(t *testing.T, err error) {
@@ -24,14 +24,13 @@ func failWhen(t *testing.T, x bool) {
 	}
 }
 
-
 type TestCase struct {
-	Left string
-	Right string
-	Join string
-	LeftKey string
+	Left     string
+	Right    string
+	Join     string
+	LeftKey  string
 	RightKey string
-	Pairs []JoinedPair
+	Pairs    []JoinedPair
 }
 
 var joinTests = []TestCase{
@@ -43,7 +42,7 @@ var joinTests = []TestCase{
 		"{{.}}",
 		[]JoinedPair{
 			{Left: map[string]string{"a": "b"},
-			Right:"b"},
+				Right: "b"},
 		},
 	},
 	{
@@ -54,7 +53,7 @@ var joinTests = []TestCase{
 		"{{a}}",
 		[]JoinedPair{
 			{Left: map[string]string{"a": "b"},
-			 Right: map[string]string{"a": "b"}},
+				Right: map[string]string{"a": "b"}},
 		},
 	},
 }
@@ -108,4 +107,3 @@ func RunApp(app *cli.App, cmd []string) (error, string) {
 	log.SetOutput(os.Stderr)
 	return err, buf.String()
 }
-

@@ -1,8 +1,8 @@
 package main
 
 import (
-	"testing"
 	"github.com/jmyounker/mustache"
+	"testing"
 )
 
 func TestRender(t *testing.T) {
@@ -10,7 +10,7 @@ func TestRender(t *testing.T) {
 	if err != nil {
 		t.Fail()
 	}
-	m := map[string]string{"m":"mv"}
+	m := map[string]string{"m": "mv"}
 	e := tmpl.Render(false, m)
 	if e != "mv" {
 		t.Fatalf("%s", e)

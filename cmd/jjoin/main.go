@@ -7,8 +7,8 @@ import (
 	"io"
 	"os"
 
+	"github.com/jmyounker/jtools/internal/mustache"
 	"github.com/urfave/cli"
-	"github.com/jmyounker/mustache"
 )
 
 var version string

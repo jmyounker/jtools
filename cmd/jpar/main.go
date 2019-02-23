@@ -2,18 +2,18 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
-	"strconv"
-
-	"github.com/jmyounker/mustache"
 	"os/exec"
-	"io/ioutil"
-	"syscall"
-	"errors"
 	"regexp"
+	"strconv"
+	"syscall"
+
+	"github.com/jmyounker/jtools/internal/mustache"
 )
 
 var version string
@@ -21,7 +21,6 @@ var Debug bool = false
 
 const OUTCOME_SUCCESS string = "SUCCESS"
 const OUTCOME_FAILURE string = "FAILURE"
-
 
 func main() {
 	err := NewApp().Run(os.Args)
@@ -32,23 +31,23 @@ func main() {
 }
 
 type App struct {
-	Prog string
+	Prog        string
 	Parallelism int
-	Args []string
-	Dir string
-	Env map[string]string
+	Args        []string
+	Dir         string
+	Env         map[string]string
 }
 
 const DEFAULT_PARALLELISM = 8
 
-func NewApp() *App{
+func NewApp() *App {
 	return &App{
 		Parallelism: DEFAULT_PARALLELISM,
-		Env: map[string]string{},
+		Env:         map[string]string{},
 	}
 }
 
-func (a *App)Run(argv []string) error {
+func (a *App) Run(argv []string) error {
 	envPtrn := regexp.MustCompile("^([^=]+)=(.+)$")
 	args := []string{}
 	a.Prog = argv[0]
@@ -113,7 +112,7 @@ func ActionCmd(a *App) error {
 		return errors.New("at least one worker required")
 	}
 	cmd := []*mustache.Template{}
-	for _, arg := range(a.Args) {
+	for _, arg := range a.Args {
 		t, err := mustache.ParseString(arg)
 		if err != nil {
 			return err
@@ -122,7 +121,7 @@ func ActionCmd(a *App) error {
 	}
 
 	env := map[*mustache.Template]*mustache.Template{}
-	for k, v := range(a.Env) {
+	for k, v := range a.Env {
 		kt, err := mustache.ParseString(k)
 		if err != nil {
 			return fmt.Errorf("cannot parse key %s", k)
@@ -193,10 +192,9 @@ func ActionCmd(a *App) error {
 	return nil
 }
 
-
 func waitForTermination(done chan struct{}, count int) {
 	completed := 0
-	for _ = range done {
+	for range done {
 		completed = completed + 1
 		if completed == count {
 			return
@@ -210,7 +208,7 @@ func worker(
 	jobs chan Job,
 	completed chan Output,
 	done chan struct{}) {
-	for job := range(jobs) {
+	for job := range jobs {
 		if job.Done {
 			done <- struct{}{}
 			return
@@ -225,42 +223,42 @@ func worker(
 }
 
 type JobRun struct {
-	Cmd *[]string `json:"cmd"`
-	Prog *string `json:"prog"`
-	Env *map[string]string `json:"env,omitempty"`
-	Dir string `json:"dir,omitempty"`
-	Expansions interface{} `json:"e"`
-	Returncode int `json:"returncode"`
-	Stdout string `json:"stdout"`
-	Stderr string `json:"stderr"`
-	Errors []string `json:"errors,omittempty"`
-	Outcome string `json:"outcome"`
-	WorkerId *int `json:"worker-id,omitempty"`
+	Cmd        *[]string          `json:"cmd"`
+	Prog       *string            `json:"prog"`
+	Env        *map[string]string `json:"env,omitempty"`
+	Dir        string             `json:"dir,omitempty"`
+	Expansions interface{}        `json:"e"`
+	Returncode int                `json:"returncode"`
+	Stdout     string             `json:"stdout"`
+	Stderr     string             `json:"stderr"`
+	Errors     []string           `json:"errors,omittempty"`
+	Outcome    string             `json:"outcome"`
+	WorkerId   *int               `json:"worker-id,omitempty"`
 }
 
 func NewJobRun(cmd *[]string, e interface{}) *JobRun {
 	return &JobRun{
-		Cmd: cmd,
-		Env: nil,
-		Dir: "",
+		Cmd:        cmd,
+		Env:        nil,
+		Dir:        "",
 		Expansions: e,
 		Returncode: RETURNCODE_FAILURE,
-		Stdout: "",
-		Stderr: "",
-		Errors: []string{},
-		Outcome: OUTCOME_FAILURE,
+		Stdout:     "",
+		Stderr:     "",
+		Errors:     []string{},
+		Outcome:    OUTCOME_FAILURE,
 	}
 }
 
 func buildJob(params Params, data interface{}) *JobRun {
 	cmd := []string{}
-	for _, arg := range (params.Cmd) {
+	for _, arg := range params.Cmd {
 		cmd = append(cmd, arg.Render(false, data))
 	}
 	r := NewJobRun(&cmd, data)
 	if len(params.Env) > 0 {
 		env := map[string]string{}
-		for kt, vt := range(params.Env) {
+		for kt, vt := range params.Env {
 			k := kt.Render(false, data)
 			v := vt.Render(false, data)
 			_, ok := env[k]
@@ -299,7 +297,7 @@ func runJob(r *JobRun) *JobRun {
 	}
 	if r.Env != nil {
 		e := []string{}
-		for k, v := range(*r.Env) {
+		for k, v := range *r.Env {
 			e = append(e, fmt.Sprintf("%s=%s", k, v))
 		}
 		c.Env = e
@@ -338,8 +336,8 @@ func runJob(r *JobRun) *JobRun {
 		stderr <- StringWithError{string(out), err}
 		close(stderr)
 	}()
-	sout := <- stdout
-	serr := <- stderr
+	sout := <-stdout
+	serr := <-stderr
 	r.Stdout = sout.Value
 	r.Stderr = serr.Value
 	if sout.Err != nil {
@@ -388,15 +386,15 @@ type JsonRead struct {
 
 type StringWithError struct {
 	Value string
-	Err error
+	Err   error
 }
 
 type Job struct {
 	Value interface{}
-	Done bool
+	Done  bool
 }
 
 type Output struct {
 	Value *JobRun
-	Done bool
+	Done  bool
 }

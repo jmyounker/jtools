@@ -1,4 +1,4 @@
-CMD = jjoin
+CMD = $(shell basename $(CURDIR))
 
 GOFILES = $(wildcard *.go)
 
@@ -8,13 +8,13 @@ clean:
 build:
 	go build -ldflags "-X main.version=$(VERSION)"
 
-test: build
+test:
 	go test
 
 format:
 	$(GOFMT) -w $(GOFILES)
 
-install: build test
+install:
 	install -m 755 -o $(INSTALL_USER) -g $(INSTALL_GROUP) $(CMD) $(PREFIX)/bin/$(CMD)
 
 
