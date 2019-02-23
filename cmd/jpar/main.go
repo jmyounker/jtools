@@ -36,6 +36,7 @@ type App struct {
 	Args        []string
 	Dir         string
 	Env         map[string]string
+	Stdin		string
 }
 
 const DEFAULT_PARALLELISM = 8
@@ -86,6 +87,10 @@ func (a *App) Run(argv []string) error {
 			}
 			a.Env[matches[1]] = matches[2]
 			i = i + 1
+		case "-i", "--stdin":
+			i = i + 1
+			a.Stdin = argv[i]
+			i = i + 1
 		default:
 			// The first unmatched argument to the end of argv is the the whole
 			// argument list.
@@ -105,40 +110,14 @@ type Params struct {
 	Cmd []*mustache.Template
 	Env map[*mustache.Template]*mustache.Template
 	Dir *mustache.Template
+	Stdin *mustache.Template
 }
 
 func ActionCmd(a *App) error {
-	if a.Parallelism < 1 {
-		return errors.New("at least one worker required")
-	}
-	cmd := []*mustache.Template{}
-	for _, arg := range a.Args {
-		t, err := mustache.ParseString(arg)
-		if err != nil {
-			return err
-		}
-		cmd = append(cmd, t)
-	}
-
-	env := map[*mustache.Template]*mustache.Template{}
-	for k, v := range a.Env {
-		kt, err := mustache.ParseString(k)
-		if err != nil {
-			return fmt.Errorf("cannot parse key %s", k)
-		}
-		kv, err := mustache.ParseString(v)
-		if err != nil {
-			return fmt.Errorf("cannot parse value %s", v)
-		}
-		env[kt] = kv
-	}
-
-	dir, err := mustache.ParseString(a.Dir)
+	params, err := paramsFromApp(a)
 	if err != nil {
-		return fmt.Errorf("cannot parse dir name: %s", a.Dir)
+		return err
 	}
-
-	params := Params{cmd, env, dir}
 	jobs := make(chan Job)
 	results := make(chan Output)
 	inputDone := make(chan struct{})
@@ -192,6 +171,45 @@ func ActionCmd(a *App) error {
 	return nil
 }
 
+func paramsFromApp(a *App) (*Params, error) {
+	if a.Parallelism < 1 {
+		return nil, errors.New("at least one worker required")
+	}
+	cmd := []*mustache.Template{}
+	for _, arg := range a.Args {
+		t, err := mustache.ParseString(arg)
+		if err != nil {
+			return nil, err
+		}
+		cmd = append(cmd, t)
+	}
+
+	env := map[*mustache.Template]*mustache.Template{}
+	for k, v := range a.Env {
+		kt, err := mustache.ParseString(k)
+		if err != nil {
+			return nil, fmt.Errorf("cannot parse key %s", k)
+		}
+		kv, err := mustache.ParseString(v)
+		if err != nil {
+			return nil, fmt.Errorf("cannot parse value %s", v)
+		}
+		env[kt] = kv
+	}
+
+	dir, err := mustache.ParseString(a.Dir)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse dir name: %s", a.Dir)
+	}
+
+	stdin, err := mustache.ParseString(a.Stdin)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse stdin: %s", a.Stdin)
+	}
+
+	return &Params{cmd, env, dir, stdin}, nil
+}
+
 func waitForTermination(done chan struct{}, count int) {
 	completed := 0
 	for range done {
@@ -204,7 +222,7 @@ func waitForTermination(done chan struct{}, count int) {
 
 func worker(
 	id int,
-	p Params,
+	p *Params,
 	jobs chan Job,
 	completed chan Output,
 	done chan struct{}) {
@@ -213,7 +231,7 @@ func worker(
 			done <- struct{}{}
 			return
 		}
-		r := buildJob(p, job.Value)
+		r := buildJobRun(p, job.Value)
 		r = runJob(r)
 		if Debug {
 			r.WorkerId = &id
@@ -229,6 +247,7 @@ type JobRun struct {
 	Dir        string             `json:"dir,omitempty"`
 	Expansions interface{}        `json:"e"`
 	Returncode int                `json:"returncode"`
+	Stdin	   string          	  `json:"stdin"`
 	Stdout     string             `json:"stdout"`
 	Stderr     string             `json:"stderr"`
 	Errors     []string           `json:"errors,omittempty"`
@@ -243,6 +262,7 @@ func NewJobRun(cmd *[]string, e interface{}) *JobRun {
 		Dir:        "",
 		Expansions: e,
 		Returncode: RETURNCODE_FAILURE,
+		Stdin:      "",
 		Stdout:     "",
 		Stderr:     "",
 		Errors:     []string{},
@@ -250,7 +270,7 @@ func NewJobRun(cmd *[]string, e interface{}) *JobRun {
 	}
 }
 
-func buildJob(params Params, data interface{}) *JobRun {
+func buildJobRun(params *Params, data interface{}) *JobRun {
 	cmd := []string{}
 	for _, arg := range params.Cmd {
 		cmd = append(cmd, arg.Render(false, data))
@@ -273,8 +293,18 @@ func buildJob(params Params, data interface{}) *JobRun {
 	if params.Dir != nil {
 		r.Dir = params.Dir.Render(false, data)
 	}
-	// Building the job was successful.
-	r.Outcome = OUTCOME_SUCCESS
+	stdin, err := CreateStdin(params.Stdin, r.Expansions)
+	if err != nil {
+		r.Errors = append(r.Errors, fmt.Sprintf("stdin could not be processed: %s", err))
+	}
+	r.Stdin = stdin
+
+	if len(r.Errors) != 0 {
+		r.Outcome = OUTCOME_FAILURE
+	} else {
+		// Building the job was successful.
+		r.Outcome = OUTCOME_SUCCESS
+	}
 	return r
 }
 
@@ -315,6 +345,11 @@ func runJob(r *JobRun) *JobRun {
 		r.Outcome = OUTCOME_FAILURE
 		r.Errors = append(r.Errors, fmt.Sprintf("cannot construct stderr: %s", err))
 	}
+	stdin, err := c.StdinPipe()
+	if err != nil {
+		r.Outcome = OUTCOME_FAILURE
+		r.Errors = append(r.Errors, fmt.Sprintf("cannot construct stdin: %s", err))
+	}
 	if len(r.Errors) > 0 {
 		return r
 	}
@@ -326,6 +361,10 @@ func runJob(r *JobRun) *JobRun {
 	}
 	stdout := make(chan StringWithError)
 	stderr := make(chan StringWithError)
+	go func() {
+		stdin.Write([]byte(r.Stdin))
+		stdin.Close()
+	}()
 	go func() {
 		out, err := ioutil.ReadAll(outRdr)
 		stdout <- StringWithError{string(out), err}
@@ -355,6 +394,25 @@ func runJob(r *JobRun) *JobRun {
 		r.Outcome = OUTCOME_SUCCESS
 	}
 	return r
+}
+
+func CreateStdin(stdinTmpl *mustache.Template, expansions interface{}) (string, error) {
+	if stdinTmpl != nil {
+		return stdinTmpl.Render(false, expansions), nil
+	}
+	e, ok := expansions.(*map[string]interface{})
+	if !ok {
+		return "", nil
+	}
+	stdin, ok := (*e)["stdin"]
+	if !ok {
+		return "", nil
+	}
+	s, ok := stdin.(string)
+	if !ok {
+		return "", fmt.Errorf("attribute stdin is not a string")
+	}
+	return s, nil
 }
 
 func ReadJsonStream(stream *os.File) chan JsonRead {
