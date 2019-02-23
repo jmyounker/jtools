@@ -4,11 +4,11 @@ jtools: A Collection of JSON Tools
 These are collection of tools to help working with json on the
 command line. It includes the following tools:
 
-`jc`: Count JSON objects on stdin.
-`jjoin`: Perform simple relational joins on JSON objects.  
-`jpar`: Run a command for each JSON object on stdin.  
-`jx`: Expand a template for each JSON object.  
-`l2j`: Convert plain text into JSON strings.
+* `jc`: Count JSON objects on stdin.
+* `jjoin`: Perform simple relational joins on JSON objects.  
+* `jpar`: Run a command for each JSON object on stdin.  
+* `jx`: Expand a template for each JSON object.  
+* `l2j`: Convert plain text into JSON strings.
 
 
 Downloads
