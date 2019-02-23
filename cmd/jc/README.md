@@ -1,5 +1,5 @@
 `jc`: Count JSON Records
-======================
+========================
 
 Count JSON records in the input stream.
 
