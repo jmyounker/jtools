@@ -45,7 +45,7 @@ func NewApp() *App {
 	return &App{
 		Parallelism: DEFAULT_PARALLELISM,
 		Env:         map[string]string{},
-		Stdin:	     "{{stdin}}",
+		Stdin:	     "{{stdout}}",
 	}
 }
 
