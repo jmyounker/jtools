@@ -43,8 +43,8 @@ const DEFAULT_PARALLELISM = 8
 
 func NewApp() *App {
 	return &App{
-		Parallelism: DEFAULT_PARALLELISM,
 		Env:         map[string]string{},
+		Parallelism: DEFAULT_PARALLELISM,
 		Stdin:	     "{{stdout}}",
 	}
 }
@@ -149,6 +149,13 @@ func ActionCmd(a *App) error {
 			if x.Done {
 				break
 			} else {
+				if !Debug {
+					x.Value.Expansions = nil
+					x.Value.Stdin = ""
+//					if len(x.Value.Errors) == 0 {
+//						x.Value.Errors = nil
+//					}
+				}
 				out, err := json.Marshal(x.Value)
 				if err != nil {
 					log.Panicf("Cannot marshal: %s", x)
@@ -246,12 +253,12 @@ type JobRun struct {
 	Prog       *string            `json:"prog"`
 	Env        *map[string]string `json:"env,omitempty"`
 	Dir        string             `json:"dir,omitempty"`
-	Expansions interface{}        `json:"e"`
+	Expansions interface{}        `json:"e,omitempty"`
 	Returncode int                `json:"returncode"`
-	Stdin	   string          	  `json:"stdin"`
+	Stdin	   string          	  `json:"stdin,omitempty"`
 	Stdout     string             `json:"stdout"`
 	Stderr     string             `json:"stderr"`
-	Errors     []string           `json:"errors,omittempty"`
+	Errors     []string           `json:"errors,omitempty"`
 	Outcome    string             `json:"outcome"`
 	WorkerId   *int               `json:"worker-id,omitempty"`
 }
@@ -284,7 +291,9 @@ func buildJobRun(params *Params, data interface{}) *JobRun {
 			v := vt.Render(false, data)
 			_, ok := env[k]
 			if ok {
-				r.Errors = append(r.Errors, fmt.Sprintf("parameter %s is duplicate (expanded from %s)", k, kt))
+				r.Errors = append(
+					r.Errors,
+					fmt.Sprintf("parameter %s is duplicate (expanded from %s)", k, kt))
 				break
 			}
 			env[k] = v
@@ -392,10 +401,6 @@ func runJob(r *JobRun) *JobRun {
 		r.Outcome = OUTCOME_SUCCESS
 	}
 	return r
-}
-
-func CreateStdin(stdinTmpl *mustache.Template, expansions interface{}) (string, error) {
-	return stdinTmpl.Render(false, expansions), nil
 }
 
 func ReadJsonStream(stream *os.File) chan JsonRead {
