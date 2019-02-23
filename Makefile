@@ -43,14 +43,14 @@ set-user:
 ifeq ($(shell uname),Darwin)
 	$(eval export INSTALL_USER := $(shell id -u))
 else
-	$(eval export INSTALL_USER := root)
+	$(eval export INSTALL_USER := $(shell id -u))
 endif
 
 set-group:
 ifeq ($(shell uname),Darwin)
 	$(eval export INSTALL_GROUP := $(shell id -g))
 else
-	$(eval export INSTALL_GROUP := root)
+	$(eval export INSTALL_GROUP := $(shell id -g))
 endif
 
 install: build test set-prefix set-user set-group
