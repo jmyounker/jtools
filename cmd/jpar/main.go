@@ -152,9 +152,6 @@ func ActionCmd(a *App) error {
 				if !Debug {
 					x.Value.Expansions = nil
 					x.Value.Stdin = ""
-//					if len(x.Value.Errors) == 0 {
-//						x.Value.Errors = nil
-//					}
 				}
 				out, err := json.Marshal(x.Value)
 				if err != nil {
