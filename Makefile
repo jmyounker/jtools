@@ -50,7 +50,7 @@ set-group:
 ifeq ($(shell uname),Darwin)
 	$(eval export INSTALL_GROUP := $(shell id -g))
 else
-	$(eval export INTALL_GROUP := root)
+	$(eval export INSTALL_GROUP := root)
 endif
 
 install: build test set-prefix set-user set-group
