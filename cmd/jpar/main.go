@@ -155,7 +155,7 @@ func ActionCmd(a *App) error {
 				}
 				out, err := json.Marshal(x.Value)
 				if err != nil {
-					log.Panicf("Cannot marshal: %s", x)
+					log.Panicf("Cannot marshal internal job record.")
 				}
 				os.Stdout.Write(out)
 			}
@@ -290,7 +290,7 @@ func buildJobRun(params *Params, data interface{}) *JobRun {
 			if ok {
 				r.Errors = append(
 					r.Errors,
-					fmt.Sprintf("parameter %s is duplicate (expanded from %s)", k, kt))
+					fmt.Sprintf("parameter %s is duplicate", k))
 				break
 			}
 			env[k] = v
