@@ -18,11 +18,13 @@ clean:
 	$(foreach module,$(INTERNAL),$(MAKE) clean -C internal/$(module);)
 
 update:
+	go get github.com/jmyounker/vers
 	$(foreach cmd,$(COMMANDS),$(MAKE) update -C cmd/$(cmd);)
 	$(foreach module,$(INTERNAL),$(MAKE) update -C internal/$(module);)
 
 build-vers:
-	make -C $$GOPATH/src/$(PKG_VERS) build
+	@echo ------------ $(GOPATH)
+	make -C $(GOPATH)/src/$(PKG_VERS) build
 
 set-version: build-vers
 	$(eval export VERSION := $(shell $$GOPATH/src/$(PKG_VERS)/vers -f version.json show))
