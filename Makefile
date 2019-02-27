@@ -6,16 +6,20 @@ PKG_VERS := github.com/jmyounker/vers
 
 PKG_NAME := jtools
 
-export GOFMT = gofmt -s
+export GOFMT = gofmt -s -tabs=false -tabwidth=4
 
 export COMMANDS := $(shell ls $(CURDIR)/cmd)
+
+export INTERNAL := $(shell ls $(CURDIR)/internal)
 
 clean:
 	rm -rf target
 	$(foreach cmd,$(COMMANDS),$(MAKE) clean -C cmd/$(cmd);)
+	$(foreach module,$(INTERNAL),$(MAKE) clean -C internal/$(module);)
 
 update:
-	go get $(PKG_VERS)
+	$(foreach cmd,$(COMMANDS),$(MAKE) update -C cmd/$(cmd);)
+	$(foreach module,$(INTERNAL),$(MAKE) update -C internal/$(module);)
 
 build-vers:
 	make -C $$GOPATH/src/$(PKG_VERS) build
@@ -26,9 +30,11 @@ set-version: build-vers
 
 build: set-version
 	$(foreach cmd,$(COMMANDS),$(MAKE) build -C cmd/$(cmd);)
+	$(foreach module,$(INTERNAL),$(MAKE) build -C internal/$(module);)
 
 test: build
 	$(foreach cmd,$(COMMANDS),$(MAKE) test -C cmd/$(cmd);)
+	$(foreach module,$(INTERNAL),$(MAKE) test -C internal/$(module);)
 
 set-prefix:
 ifndef PREFIX
@@ -58,6 +64,7 @@ install: build test set-prefix set-user set-group
 
 format:
 	$(foreach cmd,$(COMMANDS),$(MAKE) format -C cmd/$(cmd);)
+	$(foreach module,$(INTERNAL),$(MAKE) clean -C internal/$(module);)
 
 package-base: test
 	mkdir target

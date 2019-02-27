@@ -5,12 +5,14 @@ GOFILES = $(wildcard *.go)
 clean:
 	rm -f $(CMD)
 
+update:
+	go get
+
 build:
 	go build -ldflags "-X main.version=$(VERSION)"
 
-test: build
-	@echo do nothing
-#	go test
+test:
+	go test
 
 format:
 	$(GOFMT) -w $(GOFILES)
