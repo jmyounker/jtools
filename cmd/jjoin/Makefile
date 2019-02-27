@@ -1,15 +1,20 @@
 CMD = $(shell basename $(CURDIR))
 
+TARGET=$(CURDIR)/target
+
 GOFILES = $(wildcard *.go)
 
 clean:
-	rm -f $(CMD)
+	rm -rf $(TARGET)
 
 update:
 	go get
 
-build:
-	go build -ldflags "-X main.version=$(VERSION)"
+make-target:
+	mkdir -p $(TARGET)
+
+build: make-target
+	GOBIN=$(TARGET) go install -ldflags "-X main.version=$(VERSION)"
 
 test:
 	go test
@@ -18,7 +23,4 @@ format:
 	$(GOFMT) -w $(GOFILES)
 
 install:
-	install -m 755 -o $(INSTALL_USER) -g $(INSTALL_GROUP) $(CMD) $(PREFIX)/bin/$(CMD)
-
-
-
+	install -m 755 -o $(INSTALL_USER) -g $(INSTALL_GROUP) $(TARGET)/$(CMD) $(PREFIX)/bin/$(CMD)

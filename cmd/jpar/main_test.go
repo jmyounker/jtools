@@ -1,9 +1,8 @@
 package main
 
 import (
-	"testing"
-
 	"github.com/jmyounker/jtools/internal/mustache"
+	"testing"
 )
 
 func TestRender(t *testing.T) {
