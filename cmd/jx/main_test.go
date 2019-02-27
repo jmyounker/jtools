@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jmyounker/mustache"
+	"github.com/jmyounker/jtools/internal/mustache"
 )
 
 var inputTests = []struct{ in, tmpl, want string }{
