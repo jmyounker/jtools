@@ -95,6 +95,6 @@ package-deb: set-version set-user set-group package-base
 	mkdir $(MODEL_BASE)/linux-x86-deb
 	mkdir $(MODEL_BASE)/linux-x86-deb/usr
 	mkdir $(MODEL_BASE)/linux-x86-deb/usr/bin
-	$(eval export PREFIX=$(MODEL_BASE)/linux-x86-deb/bin)
+	$(eval export PREFIX=$(MODEL_BASE)/linux-x86-de/usr)
 	$(foreach cmd,$(COMMANDS),$(MAKE) install -C cmd/$(cmd);)
 	fpm -s dir -t deb -n $(PKG_NAME) -v $(VERSION) -p target/package -C target/model/linux-x86-deb .
