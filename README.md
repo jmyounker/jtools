@@ -1,8 +1,8 @@
 jtools: A Collection of JSON Tools
 ==================================
 
-These are collection of tools to help working with json on the
-command line. It includes the following tools:
+These are tools to help working with JSON on the command line. It
+includes the following little programs:
 
 * `jc`: Count JSON objects on stdin.
 * `jjoin`: Perform simple relational joins on JSON objects.  
@@ -122,12 +122,16 @@ section.
 ```
 
 The `jpar` command runs a program once for each JSON object in the input. It
-The `-i` option supplies a pattern for the programs standard input. The
-process's standard in (generated), standard out, standard error, and return
-code are recorded in the resulting json objects.
+The `-i` option supplies a pattern for the programs standard input. The process's
+standard in (generated), standard out, standard error, and return code are
+recorded in the resulting json objects.
 
 You can then use the tools of your choice (such as `jq` in the example above
 to manipulate the output.) 
+
+If the pattern `-i` template is not suppied and `.stdout` is defined in the input
+dictionary then it stdout from there. This allows you to easily chain together
+batches of commands.
 
 
 Template System
