@@ -102,6 +102,9 @@ func (a *App) Run(argv []string) error {
 		}
 	}
 	a.Args = args
+	if len(args) == 0 {
+		return errors.New("error: command required")
+	}
 	return ActionCmd(a)
 }
 
