@@ -23,7 +23,6 @@ update:
 	$(foreach module,$(INTERNAL),$(MAKE) update -C internal/$(module);)
 
 build-vers:
-	@echo ------------ $(GOPATH)
 	make -C $(GOPATH)/src/$(PKG_VERS) build
 
 set-version: build-vers
