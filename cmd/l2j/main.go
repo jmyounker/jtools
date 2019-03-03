@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"regexp"
+	"strings"
 
 	"github.com/urfave/cli"
 )
@@ -18,19 +19,23 @@ func main() {
 	app.Usage = "Convert lines to strings."
 	app.Action = ActionLinesToStrings
 	app.Flags = []cli.Flag{
-		cli.IntFlag{
-			Name:  "chunk-size, stride, c",
-			Usage: "Chunk size.",
-			Value: 0,
+		cli.BoolFlag{
+			Name:  "chop",
+			Usage: "Chop trailing line terminators from strings.",
 		},
-		cli.StringFlag{
-			Name:  "split-before",
-			Usage: "Split before this regular expression.",
-			Value: "",
+		cli.IntFlag{
+			Name:  "chunk-size, stride, c, L",
+			Usage: "Split every N lines. 0=never split",
+			Value: 0,
 		},
 		cli.StringFlag{
 			Name:  "split-after",
 			Usage: "Split after this regular expression.",
+			Value: "",
+		},
+		cli.StringFlag{
+			Name:  "split-before",
+			Usage: "Split before this regular expression.",
 			Value: "",
 		},
 	}
@@ -44,6 +49,8 @@ func main() {
 }
 
 func ActionLinesToStrings(c *cli.Context) error {
+	chop := c.Bool("chop")
+
 	stride := c.Int("chunk-size")
 
 	split_before, err := CompilePtrn(c.String("split-before"))
@@ -64,13 +71,13 @@ func ActionLinesToStrings(c *cli.Context) error {
 		if r.Err != nil {
 			break
 		}
-		i, acc, err = ProcessLine(split_before, split_after, stride, i, acc, r.Value)
+		i, acc, err = ProcessLine(chop, split_before, split_after, stride, i, acc, r.Value)
 		if err != nil {
 			return err
 		}
 	}
 	if acc != "" {
-		if err := Flush(acc); err != nil {
+		if err := Flush(chop, acc); err != nil {
 			return err
 		}
 	}
@@ -111,30 +118,31 @@ type StringOrError struct {
 	Err error
 }
 
-func ProcessLine(split_before, split_after *regexp.Regexp, stride, i int, acc, line string) (int, string, error) {
+func ProcessLine(
+	chop bool, split_before, split_after *regexp.Regexp, stride, i int, acc, line string) (int, string, error) {
 	if Matches(split_before, line) {
 		if acc == "" {
 			return 1, line, nil
 		}
-		if err := Flush(acc); err != nil {
+		if err := Flush(chop, acc); err != nil {
 			return 0, "", err
 		}
 		return 1, line, nil
 	} else if stride > 0 && i == stride && Matches(split_after, line) {
-		if err := Flush(acc); err != nil {
+		if err := Flush(chop, acc); err != nil {
 			return 0, "", err
 		}
-		if err := Flush(line); err != nil {
+		if err := Flush(chop, line); err != nil {
 			return 0, "", err
 		}
 		return 0, "", nil
 	} else if stride > 0 && i == stride {
-		if err := Flush(acc); err != nil {
+		if err := Flush(chop, acc); err != nil {
 			return 0, "", err
 		}
 		return 1, line, nil
 	} else if Matches(split_after, line) {
-		if err := Flush(acc + line); err != nil {
+		if err := Flush(chop, acc + line); err != nil {
 			return 0, "", err
 		}
 		return 0, "", nil
@@ -151,7 +159,10 @@ func Matches(r *regexp.Regexp, s string) bool {
 	return r.MatchString(s)
 }
 
-func Flush(s string) error {
+func Flush(chop bool, s string) error {
+	if chop {
+		s = strings.TrimSuffix(s, "\n")
+	}
 	out, err := json.MarshalIndent(s, "", "  ")
 	if err != nil {
 		return err
