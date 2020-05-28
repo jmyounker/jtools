@@ -13,7 +13,7 @@ includes the following little programs:
 
 Downloads
 ---------
-You can get RPMs, DEBs, and OSX packages from [theblobshop.com](https://www.theblobshop.com/downloads/jtools).
+You can get RPMs, DEBs, and OSX packages from [theblobshop.com](http://www.theblobshop.com/downloads/jtools).
 
 
 Examples
